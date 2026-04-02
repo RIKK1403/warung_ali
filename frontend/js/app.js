@@ -35,12 +35,14 @@ function showAlert(message, type = 'success') {
 
 // ========== Mobile Menu Toggle ==========
 function toggleMobileMenu(event) {
+  console.log('🚨 HAMBURGER CLICKED! Event:', event ? event.type : 'no event');
+  alert('Hamburger menu diklik!');
+
   if (event) {
     event.preventDefault();
     event.stopPropagation();
+    console.log('Event prevented and stopped propagation');
   }
-
-  console.log('Hamburger menu clicked - toggleMobileMenu called');
 
   const navMenu = document.getElementById('navMenu');
   const hamburgerToggle = document.getElementById('hamburgerToggle');
@@ -79,11 +81,19 @@ function closeMobileMenu() {
 
 // Close mobile menu when clicking outside
 document.addEventListener('DOMContentLoaded', function() {
-  console.log('DOM loaded, setting up mobile menu...');
+  console.log('🚨 DOMContentLoaded fired - setting up mobile menu...');
+  alert('DOM loaded - setting up hamburger menu!');
 
   // Setup hamburger menu event listeners
   const hamburgerToggle = document.getElementById('hamburgerToggle');
+  const emergencyHamburger = document.getElementById('emergencyHamburger');
+  console.log('hamburgerToggle found:', hamburgerToggle);
+  console.log('emergencyHamburger found:', emergencyHamburger);
+
+  // Setup main hamburger
   if (hamburgerToggle) {
+    console.log('Setting up event listeners for main hamburger...');
+
     // Remove existing onclick attribute and add proper event listeners
     hamburgerToggle.removeAttribute('onclick');
 
@@ -101,12 +111,41 @@ document.addEventListener('DOMContentLoaded', function() {
       toggleMobileMenu(e);
     });
 
-    console.log('Hamburger menu event listeners added');
-    console.log('Hamburger element:', hamburgerToggle);
-    console.log('Hamburger computed style:', window.getComputedStyle(hamburgerToggle));
+    console.log('✅ Main hamburger menu event listeners added');
+    console.log('Main hamburger element:', hamburgerToggle);
+    console.log('Main hamburger computed style:', window.getComputedStyle(hamburgerToggle));
+
+    // Force visible
+    hamburgerToggle.style.display = 'block';
+    hamburgerToggle.style.visibility = 'visible';
+    hamburgerToggle.style.opacity = '1';
   } else {
-    console.error('hamburgerToggle element not found during DOMContentLoaded');
+    console.error('❌ Main hamburgerToggle element not found during DOMContentLoaded');
   }
+
+  // Setup emergency hamburger
+  if (emergencyHamburger) {
+    console.log('Setting up event listeners for emergency hamburger...');
+
+    // Add event listeners for emergency button
+    emergencyHamburger.addEventListener('click', function(e) {
+      console.log('🚨 EMERGENCY HAMBURGER CLICKED!');
+      alert('Emergency hamburger diklik!');
+      toggleMobileMenu(e);
+    });
+    emergencyHamburger.addEventListener('touchstart', function(e) {
+      e.preventDefault();
+      console.log('🚨 EMERGENCY HAMBURGER TOUCHED!');
+      alert('Emergency hamburger disentuh!');
+      toggleMobileMenu(e);
+    }, { passive: false });
+
+    console.log('✅ Emergency hamburger event listeners added');
+  } else {
+    console.error('❌ Emergency hamburger not found');
+  }
+
+  alert('Both hamburger menus setup complete! Try clicking either one now.');
 
   // Add click outside listener for mobile menu
   document.addEventListener('click', function(event) {

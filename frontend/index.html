@@ -15,6 +15,10 @@
         <p>Kelontong Management</p>
       </div>
       <button class="hamburger-toggle" id="hamburgerToggle">☰</button>
+      <!-- Emergency fallback button - very visible for mobile -->
+      <button class="emergency-hamburger" id="emergencyHamburger" onclick="toggleMobileMenu(); alert('Emergency hamburger clicked!');">
+        📱 MENU 📱
+      </button>
       <ul class="nav-menu" id="navMenu">
         <li><a href="#" onclick="showProducts()" class="nav-link">📦 Kelola Barang</a></li>
         <li><a href="#" onclick="showSales()" class="nav-link active">💳 Catat Penjualan</a></li>
