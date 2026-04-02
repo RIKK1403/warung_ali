@@ -1,0 +1,282 @@
+const sqlite3 = require('sqlite3').verbose();
+const path = require('path');
+
+const dbPath = path.join(__dirname, 'warung.db');
+const db = new sqlite3.Database(dbPath);
+
+// Initialize database tables
+const initDatabase = () => {
+  db.serialize(() => {
+    // Table untuk produk
+    db.run(`
+      CREATE TABLE IF NOT EXISTS products (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        category TEXT,
+        purchase_price REAL NOT NULL,
+        selling_price REAL NOT NULL,
+        stock INTEGER DEFAULT 0,
+        quantity_per_box INTEGER DEFAULT 1,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    // Alter table untuk tambah kolom jika belum ada
+    db.run(`ALTER TABLE products ADD COLUMN quantity_per_box INTEGER DEFAULT 1`, (err) => {
+      if (err && err.message.includes('duplicate column')) {
+        // Kolom sudah ada, ignore
+      }
+    });
+
+    // Table untuk penjualan
+    db.run(`
+      CREATE TABLE IF NOT EXISTS sales (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        product_id INTEGER NOT NULL,
+        quantity INTEGER NOT NULL,
+        price REAL NOT NULL,
+        total REAL NOT NULL,
+        profit REAL NOT NULL,
+        sale_date DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY(product_id) REFERENCES products(id)
+      )
+    `);
+  });
+};
+
+// GET all products
+const getAllProducts = () => {
+  return new Promise((resolve, reject) => {
+    db.all('SELECT * FROM products ORDER BY name', (err, rows) => {
+      if (err) reject(err);
+      else resolve(rows);
+    });
+  });
+};
+
+// GET product by id
+const getProductById = (id) => {
+  return new Promise((resolve, reject) => {
+    db.get('SELECT * FROM products WHERE id = ?', [id], (err, row) => {
+      if (err) reject(err);
+      else resolve(row);
+    });
+  });
+};
+
+// ADD product
+const addProduct = (name, category, purchasePrice, sellingPrice, quantityPerBox = 1) => {
+  return new Promise((resolve, reject) => {
+    db.run(
+      'INSERT INTO products (name, category, purchase_price, selling_price, stock, quantity_per_box) VALUES (?, ?, ?, ?, 0, ?)',
+      [name, category, purchasePrice, sellingPrice, quantityPerBox],
+      function(err) {
+        if (err) reject(err);
+        else resolve(this.lastID);
+      }
+    );
+  });
+};
+
+// UPDATE product
+const updateProduct = (id, name, category, purchasePrice, sellingPrice, stock, quantityPerBox = 1) => {
+  return new Promise((resolve, reject) => {
+    db.run(
+      'UPDATE products SET name = ?, category = ?, purchase_price = ?, selling_price = ?, stock = ?, quantity_per_box = ? WHERE id = ?',
+      [name, category, purchasePrice, sellingPrice, stock, quantityPerBox, id],
+      (err) => {
+        if (err) reject(err);
+        else resolve();
+      }
+    );
+  });
+};
+
+// DELETE product
+const deleteProduct = (id) => {
+  return new Promise((resolve, reject) => {
+    db.run('DELETE FROM products WHERE id = ?', [id], (err) => {
+      if (err) reject(err);
+      else resolve();
+    });
+  });
+};
+
+// UPDATE stock
+const updateStock = (id, quantity) => {
+  return new Promise((resolve, reject) => {
+    db.run(
+      'UPDATE products SET stock = stock + ? WHERE id = ?',
+      [quantity, id],
+      (err) => {
+        if (err) reject(err);
+        else resolve();
+      }
+    );
+  });
+};
+
+// ADD sale
+const addSale = (productId, quantity, price, total, profit) => {
+  return new Promise((resolve, reject) => {
+    db.run(
+      'INSERT INTO sales (product_id, quantity, price, total, profit) VALUES (?, ?, ?, ?, ?)',
+      [productId, quantity, price, total, profit],
+      function(err) {
+        if (err) reject(err);
+        else resolve(this.lastID);
+      }
+    );
+  });
+};
+
+// GET all sales
+const getAllSales = () => {
+  return new Promise((resolve, reject) => {
+    db.all(
+      `SELECT s.*, p.name, p.purchase_price AS box_purchase_price, p.selling_price AS unit_selling_price, p.quantity_per_box,
+        (p.purchase_price * 1.0 / p.quantity_per_box) AS unit_purchase_price
+       FROM sales s
+       JOIN products p ON s.product_id = p.id
+       ORDER BY s.sale_date DESC`,
+      (err, rows) => {
+        if (err) reject(err);
+        else resolve(rows);
+      }
+    );
+  });
+};
+
+// GET sales by date range
+const getSalesByDateRange = (startDate, endDate) => {
+  return new Promise((resolve, reject) => {
+    db.all(
+      `SELECT s.*, p.name, p.purchase_price AS box_purchase_price, p.selling_price AS unit_selling_price, p.quantity_per_box,
+        (p.purchase_price * 1.0 / p.quantity_per_box) AS unit_purchase_price
+       FROM sales s
+       JOIN products p ON s.product_id = p.id
+       WHERE DATE(s.sale_date) BETWEEN ? AND ?
+       ORDER BY s.sale_date DESC`,
+      [startDate, endDate],
+      (err, rows) => {
+        if (err) reject(err);
+        else resolve(rows);
+      }
+    );
+  });
+};
+
+// GET profit summary
+const getProfitSummary = () => {
+  return new Promise((resolve, reject) => {
+    db.get(
+      `SELECT 
+        COUNT(*) as total_sales,
+        SUM(total) as total_revenue,
+        SUM(profit) as total_profit,
+        AVG(profit) as avg_profit
+       FROM sales`,
+      (err, row) => {
+        if (err) reject(err);
+        else resolve(row);
+      }
+    );
+  });
+};
+
+// GET daily profit summary
+const getDailyProfit = () => {
+  return new Promise((resolve, reject) => {
+    db.all(
+      `SELECT DATE(sale_date) as date,
+        COUNT(*) as total_transactions,
+        SUM(total) as total_revenue,
+        SUM(profit) as total_profit
+      FROM sales
+      GROUP BY DATE(sale_date)
+      ORDER BY DATE(sale_date) DESC`,
+      (err, rows) => {
+        if (err) reject(err);
+        else resolve(rows);
+      }
+    );
+  });
+};
+
+// CLEAR all sales history
+const clearSales = () => {
+  return new Promise((resolve, reject) => {
+    db.run('DELETE FROM sales', function(err) {
+      if (err) reject(err);
+      else resolve();
+    });
+  });
+};
+
+// CLEAR negative-profit sales
+const clearNegativeSales = () => {
+  return new Promise((resolve, reject) => {
+    db.run('DELETE FROM sales WHERE profit < 0', function(err) {
+      if (err) reject(err);
+      else resolve();
+    });
+  });
+};
+
+// CLEAR all data from products and sales
+const clearAllData = () => {
+  return new Promise((resolve, reject) => {
+    db.serialize(() => {
+      db.run('DELETE FROM sales', function(err) {
+        if (err) return reject(err);
+        db.run('DELETE FROM products', function(err2) {
+          if (err2) return reject(err2);
+          resolve();
+        });
+      });
+    });
+  });
+};
+
+// GET stock summary
+const getStockSummary = () => {
+  return new Promise((resolve, reject) => {
+    db.all(
+      `SELECT 
+        id,
+        name,
+        category,
+        stock,
+        purchase_price,
+        selling_price,
+        quantity_per_box,
+        (stock * (purchase_price * 1.0 / quantity_per_box)) as total_value
+       FROM products
+       ORDER BY stock DESC`,
+      (err, rows) => {
+        if (err) reject(err);
+        else resolve(rows);
+      }
+    );
+  });
+};
+
+module.exports = {
+  db,
+  initDatabase,
+  getAllProducts,
+  getProductById,
+  addProduct,
+  updateProduct,
+  deleteProduct,
+  updateStock,
+  addSale,
+  getAllSales,
+  getSalesByDateRange,
+  getProfitSummary,
+  getStockSummary,
+  getDailyProfit,
+  clearSales,
+  clearNegativeSales,
+  clearAllData
+};

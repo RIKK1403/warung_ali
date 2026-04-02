@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Warung Ali - Kelontong Management</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div id="app" class="app">
+    <!-- Sidebar Navigation -->
+    <nav class="sidebar">
+      <div class="sidebar-header">
+        <h1>Warung Ali</h1>
+        <p>Kelontong Management</p>
+      </div>
+      <button class="hamburger-toggle" id="hamburgerToggle" onclick="toggleMobileMenu()">☰</button>
+      <ul class="nav-menu" id="navMenu">
+        <li><a href="#" onclick="showProducts()" class="nav-link">📦 Kelola Barang</a></li>
+        <li><a href="#" onclick="showSales()" class="nav-link active">💳 Catat Penjualan</a></li>
+        <li><a href="#" onclick="showReports()" class="nav-link">📈 Laporan</a></li>
+      </ul>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="section-card">
+          <h3>Penjualan Terakhir</h3>
+          <div class="table-responsive">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Barang</th>
+                  <th>Jumlah</th>
+                  <th>Harga Jual</th>
+                  <th>Total</th>
+                  <th>Keuntungan</th>
+                  <th>Waktu</th>
+                </tr>
+              </thead>
+              <tbody id="recentSalesTable">
+                <tr>
+                  <td colspan="6" style="text-align: center;">Memuat data...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+
+      <!-- Products Section -->
+      <section id="products" class="section">
+        <div class="section-header">
+          <h2>Kelola Barang</h2>
+          <button class="btn btn-primary" onclick="showAddProductForm()">+ Tambah Barang</button>
+        </div>
+
+        <!-- Add/Edit Product Form -->
+        <div id="productForm" class="section-card" style="display: none;">
+          <h3 id="formTitle">Tambah Barang Baru</h3>
+          <form onsubmit="handleProductSubmit(event)">
+            <input type="hidden" id="saveProductId" value="">
+            <div class="form-group">
+              <label for="productName">Nama Barang *</label>
+              <input type="text" id="productName" required>
+            </div>
+            <div class="form-group">
+              <label for="productCategory">Kategori</label>
+              <input type="text" id="productCategory" placeholder="mis: Makanan, Minuman, Komestik">
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="purchaseMode">Mode Harga Modal *</label>
+                <select id="purchaseMode" required>
+                  <option value="box">Per Box</option>
+                  <option value="unit">Per Satuan</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="quantityPerBox">Qty per Box *</label>
+                <input type="number" id="quantityPerBox" value="1" min="1" step="1" placeholder="mis: 12" required>
+              </div>
+              <div class="form-group">
+                <label for="purchasePrice">Harga Modal (Rp) *</label>
+                <input type="number" id="purchasePrice" required min="0" step="1">
+              </div>
+              <div class="form-group">
+                <label for="pricePerUnit">Harga Modal/Satuan (Rp)</label>
+                <input type="number" id="pricePerUnit" readonly style="background-color: #f0f0f0;" placeholder="Otomatis">
+              </div>
+              <div class="form-group">
+                <label for="sellingPrice">Harga Jual/Satuan (Rp) *</label>
+                <input type="number" id="sellingPrice" required min="0" step="1">
+              </div>
+              <div class="form-group">
+                <label for="productStock">Stok Awal (pcs)</label>
+                <input type="number" id="productStock" value="0" min="0" step="1">
+              </div>
+            </div>
+            <div class="form-actions">
+              <button type="submit" class="btn btn-primary">Simpan</button>
+              <button type="button" class="btn btn-secondary" onclick="hideProductForm()">Batal</button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Products Table -->
+        <div class="section-card">
+          <h3>Daftar Barang</h3>
+          <div class="table-responsive">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Nama Barang</th>
+                  <th>Kategori</th>
+                  <th>Qty/Box</th>
+                  <th>Modal/Box</th>
+                  <th>Modal/Satuan</th>
+                  <th>Harga Jual</th>
+                  <th>Margin</th>
+                  <th>Stok (pcs)</th>
+                  <th>Nilai Stok</th>
+                  <th>Aksi</th>
+                </tr>
+              </thead>
+              <tbody id="productsTable">
+                <tr>
+                  <td colspan="10" style="text-align: center;">Memuat data...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- Sales Section -->
+      <section id="sales" class="section">
+        <h2>Catat Penjualan</h2>
+        
+        <!-- Sales Form -->
+        <div class="section-card">
+          <h3>Transaksi Penjualan (Multi-Item)</h3>
+          <form onsubmit="handleSaleSubmit(event)">
+            <div class="form-row">
+              <div class="form-group">
+                <label for="saleSearch">Cari Barang</label>
+                <input type="text" id="saleSearch" list="saleDatalist" placeholder="Cari nama barang..." oninput="filterSaleProducts()" />
+                <datalist id="saleDatalist"></datalist>
+              </div>
+              <div class="form-group">
+                <label for="saleProduct">Barang *</label>
+                <select id="saleProduct"></select>
+              </div>
+              <div class="form-group">
+                <label for="saleQuantity">Jumlah (unit) *</label>
+                <input type="number" id="saleQuantity" min="1" step="1">
+              </div>
+              <div class="form-group">
+                <label for="salePrice">Harga Satuan (Rp)</label>
+                <input type="number" id="salePrice" readonly style="background-color: #f0f0f0;">
+              </div>
+              <div class="form-group" style="display: flex; align-items: flex-end;">
+                <button type="button" class="btn btn-primary" onclick="addItemToCart()" style="margin: 0;">+ Tambah Item</button>
+              </div>
+            </div>
+
+            <!-- Cart Items -->
+            <div class="section-card" style="background-color: #f9f9f9; margin-top: 12px;">
+              <h4>Daftar Barang yang Dibeli</h4>
+              <div class="table-responsive">
+                <table class="table" id="cartTable" style="margin-bottom: 0;">
+                  <thead>
+                    <tr>
+                      <th>Barang</th>
+                      <th>Jumlah</th>
+                      <th>Harga/unit</th>
+                      <th>Total</th>
+                      <th>Modal</th>
+                      <th>Untung</th>
+                      <th>Aksi</th>
+                    </tr>
+                  </thead>
+                  <tbody id="cartBody">
+                    <tr id="emptyCart">
+                      <td colspan="7" style="text-align: center; color: #999;">Belum ada item</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="info-box" style="margin-top: 12px;">
+              <div class="info-item">
+                <span class="info-label">Total Penjualan:</span>
+                <span class="info-value" id="cartTotalSale">Rp 0</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">Biaya Modal:</span>
+                <span class="info-value" id="cartTotalCost">Rp 0</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label" style="color: #27ae60;">Keuntungan:</span>
+                <span class="info-value" style="color: #27ae60; font-weight: bold;" id="cartTotalProfit">Rp 0</span>
+              </div>
+            </div>
+
+            <!-- Pembayaran Section -->
+            <div class="section-card" style="background-color: #f0f8ff; border-left: 4px solid #3498db;">
+              <h4>💰 Pembayaran</h4>
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="buyerMoney">Uang Pembeli (Rp) *</label>
+                  <input type="number" id="buyerMoney" min="0" step="1" placeholder="Masukkan nominal uang pembeli" oninput="calculateChange()">
+                </div>
+                <div class="form-group">
+                  <label for="changeAmount">Kembalian (Rp)</label>
+                  <input type="number" id="changeAmount" readonly style="background-color: #f0f0f0; color: #27ae60; font-weight: bold;">
+                </div>
+              </div>
+              <div style="padding: 10px; background-color: #e8f5e9; border-radius: 5px; margin-top: 10px; color: #27ae60; font-size: 13px;">
+                ⓘ Masukkan uang pembeli untuk menghitung kembalian otomatis
+              </div>
+            </div>
+
+            <div class="form-actions">
+              <button type="submit" class="btn btn-success" id="submitBtn" disabled>✓ Catat Penjualan</button>
+              <button type="button" class="btn btn-secondary" onclick="resetSaleForm()">Bersihkan</button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Sales History -->
+        <div class="section-card">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; gap:10px;">
+            <h3>Riwayat Penjualan</h3>
+            <div>
+              <button type="button" class="btn btn-warning" onclick="clearNegativeSalesHistory()">Hapus Profit Negatif</button>
+              <button type="button" class="btn btn-danger" onclick="clearSalesHistory()">Hapus Semua Riwayat</button>
+              <button type="button" class="btn btn-secondary" onclick="clearAllStoreData()">Reset Semua Data (Produk + Penjualan)</button>
+            </div>
+          </div>
+          <div class="table-responsive">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Barang</th>
+                  <th>Jumlah</th>
+                  <th>Harga Jual</th>
+                  <th>Total Jual</th>
+                  <th>Biaya Modal</th>
+                  <th>Keuntungan</th>
+                  <th>Waktu</th>
+                </tr>
+              </thead>
+              <tbody id="salesTable">
+                <tr>
+                  <td colspan="7" style="text-align: center;">Memuat data...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- Reports Section -->
+      <section id="reports" class="section">
+        <h2>Laporan</h2>
+
+        <!-- Profit Reports -->
+        <div class="section-card">
+          <h3>📊 Laporan Keuntungan</h3>
+          <div class="report-grid">
+            <div class="report-item">
+              <div class="report-label">Total Transaksi</div>
+              <div class="report-value" id="reportTotalSales">0</div>
+            </div>
+            <div class="report-item">
+              <div class="report-label">Total Pendapatan</div>
+              <div class="report-value" id="reportTotalRevenue">Rp 0</div>
+            </div>
+            <div class="report-item">
+              <div class="report-label">Total Keuntungan</div>
+              <div class="report-value profit-value" id="reportTotalProfit">Rp 0</div>
+            </div>
+            <div class="report-item">
+              <div class="report-label">Rata-rata Profit</div>
+              <div class="report-value" id="reportAvgProfit">Rp 0</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Top Products -->
+        <div class="section-card">
+          <h3>Barang Terlaris (Keuntungan)</h3>
+          <div class="table-responsive">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Barang</th>
+                  <th>Jumlah Terjual</th>
+                  <th>Total Transaksi</th>
+                  <th>Total Keuntungan</th>
+                </tr>
+              </thead>
+              <tbody id="topProductsTable">
+                <tr>
+                  <td colspan="4" style="text-align: center;">Memuat data...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Daily Profit Report -->
+        <div class="section-card">
+          <h3>📅 Laporan Keuntungan Harian</h3>
+          <div class="table-responsive">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Tanggal</th>
+                  <th>Transaksi</th>
+                  <th>Pendapatan</th>
+                  <th>Keuntungan</th>
+                </tr>
+              </thead>
+              <tbody id="dailyProfitTable">
+                <tr>
+                  <td colspan="4" style="text-align: center;">Memuat data...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Stock Report -->
+        <div class="section-card">
+          <h3>📦 Laporan Stok</h3>
+          <div class="table-responsive">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Barang</th>
+                  <th>Kategori</th>
+                  <th>Stok</th>
+                  <th>Nilai Stok</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="stockReportTable">
+                <tr>
+                  <td colspan="5" style="text-align: center;">Memuat data...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="js/app.js"></script>
+</body>
+</html>
