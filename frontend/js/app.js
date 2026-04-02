@@ -34,10 +34,19 @@ function showAlert(message, type = 'success') {
 }
 
 // ========== Mobile Menu Toggle ==========
-function toggleMobileMenu() {
-  console.log('Hamburger menu clicked');
+function toggleMobileMenu(event) {
+  if (event) {
+    event.preventDefault();
+    event.stopPropagation();
+  }
+
+  console.log('Hamburger menu clicked - toggleMobileMenu called');
+
   const navMenu = document.getElementById('navMenu');
   const hamburgerToggle = document.getElementById('hamburgerToggle');
+
+  console.log('navMenu element:', navMenu);
+  console.log('hamburgerToggle element:', hamburgerToggle);
 
   if (navMenu) {
     navMenu.classList.toggle('active');
@@ -48,6 +57,9 @@ function toggleMobileMenu() {
 
   if (hamburgerToggle) {
     hamburgerToggle.classList.toggle('active');
+    console.log('Hamburger toggle active:', hamburgerToggle.classList.contains('active'));
+  } else {
+    console.error('hamburgerToggle element not found');
   }
 }
 
@@ -67,6 +79,35 @@ function closeMobileMenu() {
 
 // Close mobile menu when clicking outside
 document.addEventListener('DOMContentLoaded', function() {
+  console.log('DOM loaded, setting up mobile menu...');
+
+  // Setup hamburger menu event listeners
+  const hamburgerToggle = document.getElementById('hamburgerToggle');
+  if (hamburgerToggle) {
+    // Remove existing onclick attribute and add proper event listeners
+    hamburgerToggle.removeAttribute('onclick');
+
+    // Add multiple event listeners for better mobile support
+    hamburgerToggle.addEventListener('click', toggleMobileMenu);
+    hamburgerToggle.addEventListener('touchstart', toggleMobileMenu, { passive: false });
+    hamburgerToggle.addEventListener('touchend', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }, { passive: false });
+
+    // Add pointer events as fallback
+    hamburgerToggle.addEventListener('pointerdown', function(e) {
+      e.preventDefault();
+      toggleMobileMenu(e);
+    });
+
+    console.log('Hamburger menu event listeners added');
+    console.log('Hamburger element:', hamburgerToggle);
+    console.log('Hamburger computed style:', window.getComputedStyle(hamburgerToggle));
+  } else {
+    console.error('hamburgerToggle element not found during DOMContentLoaded');
+  }
+
   // Add click outside listener for mobile menu
   document.addEventListener('click', function(event) {
     const navMenu = document.getElementById('navMenu');
